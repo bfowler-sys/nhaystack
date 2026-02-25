@@ -17,6 +17,8 @@
 package nhaystack.server;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.baja.control.BBooleanPoint;
@@ -923,14 +925,9 @@ public class TagManager implements NHaystackConst
             supportedFacetNames.put(BFacets.PRECISION, "precision");
             supportedFacetNames.forEach((k, v) -> {
                 BNumber facetVal = getNumberFacet(facets, k, point);
-                if (facetVal != BDouble.NaN)
+                if (facetVal != null)
                 {
                     hdb.add(v, HNum.make(facetVal.getInt()));
-                }
-                else
-                {
-                    LOG.warning("Problem generating tags from facets for: " + point.getSlotPath().toDisplayString());
-                    LOG.warning("Type of component with problem facets is: " + point.getType().getDisplayName(null));
                 }
             });
         }
@@ -1078,26 +1075,75 @@ public class TagManager implements NHaystackConst
 
     public static BNumber getNumberFacet(BFacets facets, String name, BComponent component)
     {
-        if (!(facets.get(name) instanceof BNumber))
-        {
-            LOG.warning("Detected incorrectly configured facet supplied for :" + name + " " + component.getSlotPath());
-            LOG.warning("Please check all facets are correctly configured on all Control Points");
-            return BDouble.NaN;
-        }
-
         if (!name.equals(BFacets.MAX) &&
             !name.equals(BFacets.MIN) &&
             !name.equals(BFacets.PRECISION))
         {
-            LOG.warning("Trying to retrieve unsupported number facet: " + name + " " + component.getSlotPath());
-            return BDouble.NaN;
+            logFacetWarning(
+                "unsupported:" + name,
+                "Trying to retrieve unsupported number facet: " + name,
+                component);
+            return null;
         }
 
-        BNumber num = (BNumber) facets.get(name);
-        if (num == null)                   return BDouble.NaN;
-        if (num.toString().equals("+inf")) return BDouble.NaN;
-        if (num.toString().equals("-inf")) return BDouble.NaN;
+        if (facets == null)
+        {
+            return null;
+        }
+
+        BObject facet = facets.get(name);
+        if (facet == null)
+        {
+            // Missing numeric facets are common and should not be treated as an error.
+            return null;
+        }
+
+        if (!(facet instanceof BNumber))
+        {
+            logFacetWarning(
+                "wrongType:" + name,
+                "Detected incorrectly configured numeric facet: " + name +
+                ". Please check facet configuration on control points.",
+                component);
+            return null;
+        }
+
+        BNumber num = (BNumber) facet;
+        if (num.toString().equals("+inf")) return null;
+        if (num.toString().equals("-inf")) return null;
         return num;
+    }
+
+    private static void logFacetWarning(String issueKey, String message, BComponent component)
+    {
+        String typeName = "unknown";
+        if (component != null && component.getType() != null)
+        {
+            typeName = component.getType().getDisplayName(null);
+        }
+
+        String bucket = issueKey + "|" + typeName;
+        AtomicInteger occurrences = FACET_WARNING_COUNTS.computeIfAbsent(
+            bucket, key -> new AtomicInteger(0));
+        int count = occurrences.incrementAndGet();
+
+        if (count <= FACET_WARNING_LOG_LIMIT || count % FACET_WARNING_LOG_INTERVAL == 0)
+        {
+            String slotPath = "unknown";
+            if (component != null && component.getSlotPath() != null)
+            {
+                slotPath = component.getSlotPath().toDisplayString();
+            }
+
+            LOG.warning(message + " [type=" + typeName + ", sample=" + slotPath + ", count=" + count + "]");
+
+            if (count == FACET_WARNING_LOG_LIMIT)
+            {
+                LOG.warning(
+                    "Suppressing repeated facet warnings for this issue/type. " +
+                    "Further warnings will be logged every " + FACET_WARNING_LOG_INTERVAL + " occurrences.");
+            }
+        }
     }
 
     /**
@@ -1431,6 +1477,9 @@ public class TagManager implements NHaystackConst
     };
 
     private static final Logger LOG = Logger.getLogger("nhaystack");
+    private static final int FACET_WARNING_LOG_LIMIT = 5;
+    private static final int FACET_WARNING_LOG_INTERVAL = 1000;
+    private static final Map<String, AtomicInteger> FACET_WARNING_COUNTS = new ConcurrentHashMap<>();
 
     private static final HDict[] EMPTY_HDICT_ARRAY = new HDict[0];
 
