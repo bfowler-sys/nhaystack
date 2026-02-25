@@ -914,23 +914,26 @@ public class TagManager implements NHaystackConst
         if (curStatus != null) hdb.add("curStatus", curStatus);
         hdb.add("axStatus", axStatus(point.getStatus()));
 
-        // minVal, maxVal, precision
-        HashMap<String, String> supportedFacetNames = new HashMap<>();
-        supportedFacetNames.put(BFacets.MIN, "minVal");
-        supportedFacetNames.put(BFacets.MAX, "maxVal");
-        supportedFacetNames.put(BFacets.PRECISION, "precision");
-        supportedFacetNames.forEach((k, v) -> {
-            BNumber facetVal = getNumberFacet(facets, k, point);
-            if (facetVal != BDouble.NaN)
-            {
-                hdb.add(v, HNum.make(facetVal.getInt()));
-            }
-            else
-            {
-                LOG.warning("Problem generating tags from facets for: " + point.getSlotPath().toDisplayString());
-                LOG.warning("Type of component with problem facets is: " + point.getType().getDisplayName(null));
-            }
-        });
+        // Numeric facet tags only apply to numeric points.
+        if (pointKind == NUMERIC_KIND)
+        {
+            HashMap<String, String> supportedFacetNames = new HashMap<>();
+            supportedFacetNames.put(BFacets.MIN, "minVal");
+            supportedFacetNames.put(BFacets.MAX, "maxVal");
+            supportedFacetNames.put(BFacets.PRECISION, "precision");
+            supportedFacetNames.forEach((k, v) -> {
+                BNumber facetVal = getNumberFacet(facets, k, point);
+                if (facetVal != BDouble.NaN)
+                {
+                    hdb.add(v, HNum.make(facetVal.getInt()));
+                }
+                else
+                {
+                    LOG.warning("Problem generating tags from facets for: " + point.getSlotPath().toDisplayString());
+                    LOG.warning("Type of component with problem facets is: " + point.getType().getDisplayName(null));
+                }
+            });
+        }
 
         // actions tag
         if (point.isWritablePoint() || tags.has("writable"))
@@ -993,13 +996,16 @@ public class TagManager implements NHaystackConst
         HStr curStatus = makeCurStatus(out.getStatus());
         if (curStatus != null) hdb.add("curStatus", curStatus);
 
-        // minVal, maxVal, precision
-        BNumber minVal    = getNumberFacet(facets, BFacets.MIN, point);
-        BNumber maxVal    = getNumberFacet(facets, BFacets.MAX, point);
-        BNumber precision = getNumberFacet(facets, BFacets.PRECISION, point);
-        if (minVal    != null) hdb.add("minVal",    HNum.make(minVal.getInt()));
-        if (maxVal    != null) hdb.add("maxVal",    HNum.make(maxVal.getInt()));
-        if (precision != null) hdb.add("precision", HNum.make(precision.getInt()));
+        // Numeric facet tags only apply to numeric schedules.
+        if (pointKind == NUMERIC_KIND)
+        {
+            BNumber minVal    = getNumberFacet(facets, BFacets.MIN, point);
+            BNumber maxVal    = getNumberFacet(facets, BFacets.MAX, point);
+            BNumber precision = getNumberFacet(facets, BFacets.PRECISION, point);
+            if (minVal    != null) hdb.add("minVal",    HNum.make(minVal.getInt()));
+            if (maxVal    != null) hdb.add("maxVal",    HNum.make(maxVal.getInt()));
+            if (precision != null) hdb.add("precision", HNum.make(precision.getInt()));
+        }
 
         // siteRef, equipRef
         addSiteEquipTags(point, hdb, tags);
