@@ -10,7 +10,6 @@ plugins {
     id 'com.tridium.niagara-signing'
     id 'com.tridium.niagara' apply false
     id 'com.tridium.niagara-module' apply false
-    id 'com.tridium.niagara-rjs' apply false
 }
 
 def getGradleProperty(String propName) {
@@ -40,7 +39,7 @@ gradle.beforeProject { p ->
         pluginManager.withPlugin("idea") {
             idea {
                 module {
-                    scopes.TEST.plus += [configurations.niagaraModuleTestCompile]
+                    scopes.TEST.plus += [configurations.moduleTestImplementation]
                 }
             }
         }
@@ -49,8 +48,15 @@ gradle.beforeProject { p ->
 
 subprojects { Project p ->
     p.pluginManager.withPlugin('com.tridium.niagara-module') {
-        p.niagaraModule {
-            certAlias = "ph-code-cert"
+        // Module signing now uses Niagara's signing profile aliases.
+        // Default alias is Niagara4Modules unless overridden in niagara.signing.xml.
+        p.afterEvaluate {
+            p.tasks.withType(Jar).configureEach { Jar jarTask ->
+                def signingExt = jarTask.extensions.findByName("signing")
+                if (signingExt != null) {
+                    signingExt.installDir.set(p.layout.buildDirectory.dir("signed-modules"))
+                }
+            }
         }
     }
 }

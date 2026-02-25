@@ -10,49 +10,39 @@
 
 description = "nhaystack runtime module"
 
-niagaraModule {
+moduleManifest {
     preferredSymbol = "nh"
     runtimeProfile = "rt"
     moduleName = "nhaystack"
-
-    modulePart {
-        name = "nhaystack-wb"
-        runtimeProfile = "wb"
-    }
-    certAlias = "ph-code-cert"
-}
-
-repositories {
-    jcenter()
 }
 
 dependencies {
-    compile fileTree(dir: 'lib', include: ['*.jar'])
+    implementation fileTree(dir: 'lib', include: ['*.jar'])
 
-    compile "Tridium:nre:4.4.93.40"
-    compile "Tridium:alarm-rt:4.4.93.40"
-    compile "Tridium:baja:4.4.93.40"
-    compile "Tridium:bql-rt:4.4.93.40"
-    compile "Tridium:control-rt:4.4.93.40"
-    compile "Tridium:driver-rt:4.4.93.40"
-    compile "Tridium:fox-rt:4.4.93.40"
-    compile "Tridium:haystack-rt:4.4.94.40.3"
-    compile "Tridium:history-rt:4.4.93.40"
-    compile "Tridium:net-rt:4.4.93.40"
-    compile "Tridium:niagaraDriver-rt:4.4.93.40"
-    compile "Tridium:schedule-rt:4.4.93.40"
-    compile "Tridium:tagdictionary-rt:4.4.93.40"
-    compile "Tridium:web-rt:4.4.93.40"
+    implementation "Tridium:nre:4.4.93.40"
+    implementation "Tridium:alarm-rt:4.4.93.40"
+    implementation "Tridium:baja:4.4.93.40"
+    implementation "Tridium:bql-rt:4.4.93.40"
+    implementation "Tridium:control-rt:4.4.93.40"
+    implementation "Tridium:driver-rt:4.4.93.40"
+    implementation "Tridium:fox-rt:4.4.93.40"
+    implementation "Tridium:haystack-rt:4.4.94.40.3"
+    implementation "Tridium:history-rt:4.4.93.40"
+    implementation "Tridium:net-rt:4.4.93.40"
+    implementation "Tridium:niagaraDriver-rt:4.4.93.40"
+    implementation "Tridium:schedule-rt:4.4.93.40"
+    implementation "Tridium:tagdictionary-rt:4.4.93.40"
+    implementation "Tridium:web-rt:4.4.93.40"
 
-    niagaraModuleTestCompile "Tridium:test-se:4.4.93.40"
-    niagaraModuleTestCompile "Tridium:haystack-rt:4.4"
-    niagaraModuleTestCompile "Tridium:kitControl-rt:4.4.93.40.22"
-    niagaraModuleTestCompile "Tridium:jetty-rt:4.4.93.40"
-    niagaraModuleTestCompile "Tridium:bacnet-rt:4.4.93.40"
+    moduleTestImplementation "Tridium:test-se:4.4.93.40"
+    moduleTestImplementation "Tridium:haystack-rt:4.4"
+    moduleTestImplementation "Tridium:kitControl-rt:4.4.93.40.22"
+    moduleTestImplementation "Tridium:jetty-rt:4.4.93.40"
+    moduleTestImplementation "Tridium:bacnet-rt:4.4.93.40"
 
-    testCompile 'org.testng:testng:6.10'
-    testCompile "Tridium:alarm-rt:4.4.93.40"
-    testCompile fileTree(dir: 'lib', include: ['*.jar'])
+    testImplementation 'org.testng:testng:6.10'
+    testImplementation "Tridium:alarm-rt:4.4.93.40"
+    testImplementation fileTree(dir: 'lib', include: ['*.jar'])
 
     uberjar "javax.servlet:javax.servlet-api:3.0.1"
 
@@ -76,7 +66,7 @@ jar {
         include 'nhaystack/res/equip-points/*.txt'
         include 'nhaystack/icons/*.*'
     }
-    from(configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) })
+    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) })
             {
                 include "org/projecthaystack/**"
             }

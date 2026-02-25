@@ -10,10 +10,28 @@ import groovy.io.FileVisitResult
 pluginManagement {
     apply from: 'environment.gradle'
 
+    def detectNiagaraPluginsVersion = {
+        File pluginRepo = file("${gradle.ext.niagara_home}/etc/m2/repository/com/tridium/tools/niagara-plugins")
+        if (!pluginRepo.exists()) {
+            return null
+        }
+
+        def versions = pluginRepo
+            .listFiles()
+            .findAll { it.isDirectory() }
+            .collect { it.name }
+            .sort()
+
+        return versions.isEmpty() ? null : versions.last()
+    }
+
+    def niagaraPluginsVersion =
+        System.getenv('NIAGARA_PLUGINS_VERSION') ?: detectNiagaraPluginsVersion() ?: '4.1.5'
+
     resolutionStrategy {
         eachPlugin {
             if (requested.id.namespace == 'com.tridium') {
-                useModule('com.tridium.tools:niagara-plugins:4.1.5')
+                useModule("com.tridium.tools:niagara-plugins:${niagaraPluginsVersion}")
             }
         }
     }
